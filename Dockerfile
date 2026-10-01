@@ -12,7 +12,8 @@ RUN mvn -B --no-transfer-progress dependency:go-offline
 COPY src ./src
 ARG REVISION=dev-SNAPSHOT
 RUN mvn -B --no-transfer-progress -Drevision="${REVISION}" -DskipTests package \
- && java -Djarmode=tools -jar target/app.jar extract --layers --launcher --destination /extracted
+ && java -Djarmode=tools -jar target/app.jar extract --layers --launcher --destination /extracted \
+ && rm -rf target # keeps this per-commit layer, exported to the CI cache, small
 
 FROM eclipse-temurin:17-jre
 RUN groupadd --system inatrace && useradd --system --gid inatrace --home-dir /app inatrace
