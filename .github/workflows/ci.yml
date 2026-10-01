@@ -25,7 +25,22 @@ jobs:
   test:
     uses: ./.github/workflows/_test.yml
 
+  # Pull requests: the image is only built, so it does not wait for the tests.
+  image-check:
+    if: github.event_name == 'pull_request'
+    # Must grant what the reusable workflow declares; nothing is pushed here, and pull
+    # requests from forks get a read-only token anyway.
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    uses: ./.github/workflows/_image.yml
+
+  # Main: the image is published only after the tests pass.
   image:
+    if: github.event_name == 'push'
     needs: test
     permissions:
       contents: read
@@ -35,4 +50,4 @@ jobs:
       artifact-metadata: write
     uses: ./.github/workflows/_image.yml
     with:
-      push: ${{ github.event_name == 'push' }}
+      push: true

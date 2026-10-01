@@ -105,6 +105,10 @@ jobs:
           push: ${{ inputs.push }}
           tags: ${{ inputs.push && steps.meta.outputs.tags || '' }}
           sbom: true
+          # One layer cache shared by pull requests, main and releases. act has no
+          # GitHub cache service.
+          cache-from: ${{ !env.ACT && 'type=gha,scope=image' || '' }}
+          cache-to: ${{ !env.ACT && 'type=gha,scope=image,mode=max' || '' }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=INATrace backend

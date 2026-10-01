@@ -5,11 +5,13 @@
 
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /src
-ARG REVISION=dev-SNAPSHOT
+# Dependencies get their own layer, rebuilt only when pom.xml changes, so the layer
+# cache (local or CI) avoids downloading them on every build.
 COPY pom.xml ./
+RUN mvn -B --no-transfer-progress dependency:go-offline
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B --no-transfer-progress -Drevision="${REVISION}" -DskipTests package \
+ARG REVISION=dev-SNAPSHOT
+RUN mvn -B --no-transfer-progress -Drevision="${REVISION}" -DskipTests package \
  && java -Djarmode=tools -jar target/app.jar extract --layers --launcher --destination /extracted
 
 FROM eclipse-temurin:17-jre
