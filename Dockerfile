@@ -16,7 +16,10 @@ RUN mvn -B --no-transfer-progress -Drevision="${REVISION}" -DskipTests package \
  && rm -rf target # keeps this per-commit layer, exported to the CI cache, small
 
 FROM eclipse-temurin:17-jre
-RUN groupadd --system inatrace && useradd --system --gid inatrace --home-dir /app inatrace
+# /data/storage is where uploads go (INATrace.fileStorage.root). It exists in the image,
+# owned by the application user, so a volume mounted there inherits a writable owner.
+RUN groupadd --system inatrace && useradd --system --gid inatrace --home-dir /app inatrace \
+ && mkdir -p /data/storage && chown -R inatrace:inatrace /data
 WORKDIR /app
 
 # Read from the working directory at runtime: PDF fonts and the country list used to
@@ -31,8 +34,9 @@ COPY --from=build /extracted/snapshot-dependencies/ ./
 COPY --from=build /extracted/application/ ./
 
 # The image ships no configuration. Mount it at /app/config/application.properties
-# (based on src/main/resources/application.properties.template) or use environment
-# variables; Spring Boot reads ./config/ automatically.
+# (based on src/main/resources/application.properties.template, with
+# INATrace.fileStorage.root = /data/storage) or use environment variables; Spring Boot
+# reads ./config/ automatically.
 USER inatrace
 EXPOSE 8080
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
